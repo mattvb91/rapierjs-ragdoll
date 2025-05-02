@@ -99,22 +99,84 @@ stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
 
 document.body.appendChild(stats.dom);
 
+const raycaster = new THREE.Raycaster()
+
+const windowSize = {
+  width: window.innerWidth,
+  height: window.innerHeight
+}
+
+let cursor = new THREE.Vector2()
+
+document.addEventListener('mousemove', (ev) => {
+  cursor.setX(ev.clientX / windowSize.width * 2 - 1)
+  cursor.setY(-(ev.clientY / windowSize.height * 2 - 1))
+
+});
+
+const mouseHelper = new THREE.SphereGeometry(0.1, 16, 16)
+const mouseHelperMesh = new THREE.Mesh(mouseHelper, new THREE.MeshBasicMaterial({
+  color: "yellow",
+  opacity: 0.6,
+  transparent: true
+}))
+mouseHelperMesh.visible = false
+mouseHelperMesh.position.set(0, 0, 0)
+scene.add(mouseHelperMesh)
+
+let collision: THREE.Intersection<THREE.Object3D>
+let activeRagdoll: Ragdoll | null = null
+let pulling = false
+
+window.addEventListener('mousedown', ev => {
+  if (ev.button === 0 && activeRagdoll) {
+    pulling = true
+  }
+})
+
+window.addEventListener('mouseup', () => {
+  pulling = false
+  activeRagdoll?.releasePull()
+  activeRagdoll = null
+})
+
 function animate() {
   timer.update()
   stats.begin()
+
   PARAMS.rigidBodyCount = world.bodies.len()
   PARAMS.ragdollsCount = ragdolls.length
 
   pane.refresh()
-  
+
   world.gravity = new RAPIER.Vector3(0, PARAMS.gravity, 0);
   world.step()
   ragdolls.forEach(ragdoll => ragdoll.update(timer.getDelta()))
   rapierDebugRender.update()
-  orbitControls.update(timer.getDelta())
+  orbitControls.update()
 
   renderer.render(scene, camera);
+  raycaster.setFromCamera(cursor, camera)
 
+  if (collision = raycaster.intersectObjects(ragdolls.map(obj => obj?.mesh ?? new THREE.Object3D))[0]) {
+    ragdolls.forEach(doll => {
+      if (doll.mesh?.getObjectByProperty('uuid', collision.object?.uuid)) {
+        activeRagdoll = doll
+      }
+    })
+
+    mouseHelperMesh.visible = true
+    mouseHelperMesh.position.set(collision.point.x, collision.point.y, collision.point.z)
+    orbitControls.enableRotate = false
+  } else {
+    mouseHelperMesh.visible = false
+    orbitControls.enableRotate = true
+  }
+
+  if(activeRagdoll && pulling) {
+    activeRagdoll.mousePull(cursor, camera, collision?.point)
+  }
+  
   stats.end()
 }
 
