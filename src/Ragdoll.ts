@@ -1,5 +1,5 @@
-import RAPIER, { World } from "@dimforge/rapier3d-compat";
-import { Group, Mesh, MeshStandardMaterial, Object3D, Object3DEventMap, Quaternion, Scene, Vector3 } from "three";
+import RAPIER, { RigidBody, World } from "@dimforge/rapier3d-compat";
+import { Camera, Group, Mesh, MeshStandardMaterial, Object3D, Object3DEventMap, Plane, Quaternion, Raycaster, Scene, Vector2, Vector3 } from "three";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
 
 type RagdollParts = 'head' | 'torso' | 'armUpperRight' | 'armLowerRight' | 'armUpperLeft' | 'armLowerLeft' | 'thighRight' | 'shinRight' | 'thighLeft' | 'shinLeft';
@@ -36,6 +36,8 @@ export class Ragdoll extends Object3D {
         shinRight: 'shinr'
     };
     private initialBoneWorldQuaternions: Map<string, Quaternion> = new Map();
+
+    pullingBodyRigid?: RigidBody | null;
 
     constructor(world: World, scene: Scene, loader: GLTFLoader) {
         super()
@@ -227,7 +229,7 @@ export class Ragdoll extends Object3D {
 
     updateRagdoll() {
         if (!this.mesh) return;
-    
+
         for (const [key, boneName] of Object.entries(Ragdoll.boneMapping)) {
             const bone = this.mesh.getObjectByName(boneName);
             const body = this[key as RagdollParts];
@@ -258,6 +260,39 @@ export class Ragdoll extends Object3D {
                 }
             }
         }
+    }
+
+    public releasePull() {
+        console.log('Released')
+        this.pullingBodyRigid = null
+    }
+
+    mousePull(cursor: Vector2, camera: Camera, target: Vector3) {
+        if (!this.pullingBodyRigid) {
+            this.pullingBodyRigid = this.findClosestBody(target)
+        }
+
+        this.pullingBodyRigid?.applyImpulse({ x: 0, y: 0.018, z: 0 }, true)
+
+        // Todo the impusle should follow the mouse pointer
+    }
+
+    private findClosestBody(point: Vector3): RAPIER.RigidBody | null {
+        let closest: RAPIER.RigidBody | null = null;
+        let minDist = Infinity;
+
+        for (const part of Object.keys(Ragdoll.boneMapping) as RagdollParts[]) {
+            const body = this[part];
+            const pos = body.translation();
+            const dist = point.distanceTo(new Vector3(pos.x, pos.y, pos.z));
+
+            if (dist < minDist) {
+                minDist = dist;
+                closest = body;
+            }
+        }
+
+        return closest;
     }
 
 }
