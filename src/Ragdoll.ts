@@ -278,6 +278,8 @@ export class Ragdoll extends Object3D {
     }
 
     private findClosestBody(point: Vector3): RAPIER.RigidBody | null {
+        if(!point) return null
+        
         let closest: RAPIER.RigidBody | null = null;
         let minDist = Infinity;
 
