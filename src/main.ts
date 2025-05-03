@@ -114,15 +114,17 @@ document.addEventListener('mousemove', (ev) => {
 
 });
 
+const axisHelper = new THREE.AxesHelper(2)
 const mouseHelper = new THREE.SphereGeometry(0.1, 16, 16)
 const mouseHelperMesh = new THREE.Mesh(mouseHelper, new THREE.MeshBasicMaterial({
   color: "yellow",
   opacity: 0.6,
   transparent: true
 }))
+
 mouseHelperMesh.visible = false
 mouseHelperMesh.position.set(0, 0, 0)
-scene.add(mouseHelperMesh)
+scene.add(mouseHelperMesh, axisHelper)
 
 let collision: THREE.Intersection<THREE.Object3D>
 let activeRagdoll: Ragdoll | null = null
@@ -166,9 +168,12 @@ function animate() {
     })
 
     mouseHelperMesh.visible = true
+    axisHelper.visible = true
     mouseHelperMesh.position.set(collision.point.x, collision.point.y, collision.point.z)
+    axisHelper.position.set(collision.point.x, collision.point.y, collision.point.z)
     orbitControls.enableRotate = false
   } else {
+    axisHelper.visible = false
     mouseHelperMesh.visible = false
     orbitControls.enableRotate = true
   }
