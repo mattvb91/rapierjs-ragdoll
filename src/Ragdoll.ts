@@ -50,7 +50,7 @@ export class Ragdoll extends Object3D {
                     if (o instanceof Mesh) {
                         const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
                         const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                        o.material = new MeshNormalMaterial()
+                        o.material = Math.random() > 0.5 ? new MeshNormalMaterial() : new MeshStandardMaterial({ color: randomColor });
 
                         o.castShadow = true
                         o.receiveShadow = true
@@ -61,7 +61,7 @@ export class Ragdoll extends Object3D {
                 this.mesh = glTF.scene
                 this.mesh.position.set(0, 10, 0)
                 scene.add(this.mesh)
-                
+
                 /**
                  * Store initial bone orientation from the blender mesh
                  * This is very important otherwise your mesh will be twisted
@@ -69,7 +69,7 @@ export class Ragdoll extends Object3D {
                 const boneNames = new Set(Object.values(Ragdoll.boneMapping));
 
                 const traverseAndMapBones = (object: Object3D) => {
-                    
+
                     // Lets see what we can find in the mesh and match it up with our mapping above
                     console.log(object)
 
