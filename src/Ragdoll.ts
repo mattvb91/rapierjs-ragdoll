@@ -50,7 +50,7 @@ export class Ragdoll extends Object3D {
                     if (o instanceof Mesh) {
                         const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
                         const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                        o.material = Math.random() > 0.5 ? new MeshStandardMaterial({ color: randomColor }) : new MeshNormalMaterial()
+                        o.material = new MeshNormalMaterial()
 
                         o.castShadow = true
                         o.receiveShadow = true
@@ -221,12 +221,6 @@ export class Ragdoll extends Object3D {
     public update(_delta: number) {
 
         if (!this.mesh) return
-
-        this.updateRagdoll()
-    }
-
-    updateRagdoll() {
-        if (!this.mesh) return;
 
         for (const [key, boneName] of Object.entries(Ragdoll.boneMapping)) {
             const bone = this.mesh.getObjectByName(boneName);
