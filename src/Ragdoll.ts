@@ -223,16 +223,6 @@ export class Ragdoll extends Object3D {
         if (!this.mesh) return
 
         this.updateRagdoll()
-
-        const keys = ["torso"]
-        const positions = keys.map(k => this[k as RagdollParts].translation())
-
-        const avgX = positions.reduce((sum, p) => sum + p.x, 0) / positions.length
-        const avgY = positions.reduce((sum, p) => sum + p.y, 0) / positions.length
-        const avgZ = positions.reduce((sum, p) => sum + p.z, 0) / positions.length
-
-        this.position.set(avgX, avgY, avgZ)
-        this.mesh?.position.set(this.position.x, this.position.y, this.position.z)
     }
 
     updateRagdoll() {
