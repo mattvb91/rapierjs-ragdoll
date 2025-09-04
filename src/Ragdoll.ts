@@ -1,5 +1,5 @@
 import RAPIER, { World } from "@dimforge/rapier3d-compat";
-import { Group, Mesh, MeshStandardMaterial, Object3D, Object3DEventMap, Quaternion, Scene, Vector3 } from "three";
+import { Group, Mesh, MeshNormalMaterial, MeshStandardMaterial, Object3D, Object3DEventMap, Quaternion, Scene, Vector3 } from "three";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
 
 type RagdollParts = 'head' | 'torso' | 'armUpperRight' | 'armLowerRight' | 'armUpperLeft' | 'armLowerLeft' | 'thighRight' | 'shinRight' | 'thighLeft' | 'shinLeft';
@@ -50,7 +50,7 @@ export class Ragdoll extends Object3D {
                     if (o instanceof Mesh) {
                         const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
                         const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                        o.material = new MeshStandardMaterial({ color: randomColor });
+                        o.material = Math.random() > 0.5 ? new MeshStandardMaterial({ color: randomColor }) : new MeshNormalMaterial()
 
                         o.castShadow = true
                         o.receiveShadow = true
