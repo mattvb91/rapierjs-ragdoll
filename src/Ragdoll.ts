@@ -1,5 +1,5 @@
 import RAPIER, { World } from "@dimforge/rapier3d-compat";
-import { Group, Mesh, MeshStandardMaterial, Object3D, Object3DEventMap, Quaternion, Scene, Vector3 } from "three";
+import { Group, Mesh, MeshNormalMaterial, MeshStandardMaterial, Object3D, Object3DEventMap, Quaternion, Scene, Vector3 } from "three";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
 
 type RagdollParts = 'head' | 'torso' | 'armUpperRight' | 'armLowerRight' | 'armUpperLeft' | 'armLowerLeft' | 'thighRight' | 'shinRight' | 'thighLeft' | 'shinLeft';
@@ -28,8 +28,8 @@ export class Ragdoll extends Object3D {
         torso: 'spine',
         armUpperLeft: 'upperArml',
         armUpperRight: 'upperArmr',
-        armLowerLeft: 'lowerArmL',
-        armLowerRight: 'lowerArmR',
+        armLowerLeft: 'lowerArml',
+        armLowerRight: 'lowerArmr',
         thighLeft: 'hipl',
         thighRight: 'hipr',
         shinLeft: 'shinl',
@@ -50,7 +50,7 @@ export class Ragdoll extends Object3D {
                     if (o instanceof Mesh) {
                         const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
                         const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                        o.material = new MeshStandardMaterial({ color: randomColor });
+                        o.material = Math.random() > 0.5 ? new MeshNormalMaterial() : new MeshStandardMaterial({ color: randomColor });
 
                         o.castShadow = true
                         o.receiveShadow = true
@@ -66,14 +66,24 @@ export class Ragdoll extends Object3D {
                  * Store initial bone orientation from the blender mesh
                  * This is very important otherwise your mesh will be twisted
                  */
-                for (const [_, boneName] of Object.entries(Ragdoll.boneMapping)) {
-                    const bone = this.mesh.getObjectByName(boneName);
-                    if (bone) {
+                const boneNames = new Set(Object.values(Ragdoll.boneMapping));
+
+                const traverseAndMapBones = (object: Object3D) => {
+
+                    // Lets see what we can find in the mesh and match it up with our mapping above
+                    console.log(object)
+
+                    if (boneNames.has(object.name)) {
                         const quat = new Quaternion();
-                        bone.getWorldQuaternion(quat);
-                        this.initialBoneWorldQuaternions.set(boneName, quat);
+                        object.getWorldQuaternion(quat);
+                        this.initialBoneWorldQuaternions.set(object.name, quat);
                     }
-                }
+                    for (const child of object.children) {
+                        traverseAndMapBones(child);
+                    }
+                };
+
+                traverseAndMapBones(this.mesh);
 
                 this.createRagdoll();
             },
@@ -92,7 +102,7 @@ export class Ragdoll extends Object3D {
     private createRagdoll() {
 
         // Adjust this to make it more flexible
-        const stiffness = 0.02
+        const stiffness = 0.05
 
         const torsoWidth = 0.4
         const torsoHeight = .4
@@ -185,7 +195,7 @@ export class Ragdoll extends Object3D {
         const localAnchorLLegUpperLower = { x: 0, y: -legSegmentHeight / 2 - stiffness, z: 0 };
         const localAnchorLLegLowerTop = { x: 0, y: legSegmentHeight / 2, z: 0 };
 
-        const createJoint = (anchor1: RAPIER.Vector, anchor2: RAPIER.Vector, parent1: RAPIER.RigidBody, parent2: RAPIER.RigidBody ) => {
+        const createJoint = (anchor1: RAPIER.Vector, anchor2: RAPIER.Vector, parent1: RAPIER.RigidBody, parent2: RAPIER.RigidBody) => {
             const joint = RAPIER.JointData.spherical(anchor1, anchor2);
             this.world.createImpulseJoint(joint, parent1, parent2, true);
         }
@@ -212,41 +222,25 @@ export class Ragdoll extends Object3D {
 
         if (!this.mesh) return
 
-        this.updateRagdoll()
-
-        const keys = ["torso"]
-        const positions = keys.map(k => this[k as RagdollParts].translation())
-
-        const avgX = positions.reduce((sum, p) => sum + p.x, 0) / positions.length
-        const avgY = positions.reduce((sum, p) => sum + p.y, 0) / positions.length
-        const avgZ = positions.reduce((sum, p) => sum + p.z, 0) / positions.length
-
-        this.position.set(avgX, avgY, avgZ)
-        this.mesh?.position.set(this.position.x, this.position.y, this.position.z)
-    }
-
-    updateRagdoll() {
-        if (!this.mesh) return;
-    
         for (const [key, boneName] of Object.entries(Ragdoll.boneMapping)) {
             const bone = this.mesh.getObjectByName(boneName);
             const body = this[key as RagdollParts];
-    
+
             if (bone && body) {
                 const translation = body.translation();
                 const rotation = body.rotation();
-    
+
                 const bodyPos = new Vector3(translation.x, translation.y, translation.z);
                 const bodyQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-    
+
                 const parent = bone.parent as Object3D;
                 if (parent) {
                     parent.worldToLocal(bodyPos);
                     bone.position.copy(bodyPos);
-    
+
                     const parentQuat = new Quaternion();
                     parent.getWorldQuaternion(parentQuat);
-    
+
                     const initialQuat = this.initialBoneWorldQuaternions.get(boneName);
                     if (initialQuat) {
                         const relativeQuat = bodyQuat.multiply(initialQuat);
