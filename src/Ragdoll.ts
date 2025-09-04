@@ -28,8 +28,8 @@ export class Ragdoll extends Object3D {
         torso: 'spine',
         armUpperLeft: 'upperArml',
         armUpperRight: 'upperArmr',
-        armLowerLeft: 'lowerArmL',
-        armLowerRight: 'lowerArmR',
+        armLowerLeft: 'lowerArml',
+        armLowerRight: 'lowerArmr',
         thighLeft: 'hipl',
         thighRight: 'hipr',
         shinLeft: 'shinl',
@@ -61,19 +61,29 @@ export class Ragdoll extends Object3D {
                 this.mesh = glTF.scene
                 this.mesh.position.set(0, 10, 0)
                 scene.add(this.mesh)
-
+                
                 /**
                  * Store initial bone orientation from the blender mesh
                  * This is very important otherwise your mesh will be twisted
                  */
-                for (const [_, boneName] of Object.entries(Ragdoll.boneMapping)) {
-                    const bone = this.mesh.getObjectByName(boneName);
-                    if (bone) {
+                const boneNames = new Set(Object.values(Ragdoll.boneMapping));
+
+                const traverseAndMapBones = (object: Object3D) => {
+                    
+                    // Lets see what we can find in the mesh and match it up with our mapping above
+                    console.log(object)
+
+                    if (boneNames.has(object.name)) {
                         const quat = new Quaternion();
-                        bone.getWorldQuaternion(quat);
-                        this.initialBoneWorldQuaternions.set(boneName, quat);
+                        object.getWorldQuaternion(quat);
+                        this.initialBoneWorldQuaternions.set(object.name, quat);
                     }
-                }
+                    for (const child of object.children) {
+                        traverseAndMapBones(child);
+                    }
+                };
+
+                traverseAndMapBones(this.mesh);
 
                 this.createRagdoll();
             },
@@ -92,7 +102,7 @@ export class Ragdoll extends Object3D {
     private createRagdoll() {
 
         // Adjust this to make it more flexible
-        const stiffness = 0.02
+        const stiffness = 0.05
 
         const torsoWidth = 0.4
         const torsoHeight = .4
@@ -185,7 +195,7 @@ export class Ragdoll extends Object3D {
         const localAnchorLLegUpperLower = { x: 0, y: -legSegmentHeight / 2 - stiffness, z: 0 };
         const localAnchorLLegLowerTop = { x: 0, y: legSegmentHeight / 2, z: 0 };
 
-        const createJoint = (anchor1: RAPIER.Vector, anchor2: RAPIER.Vector, parent1: RAPIER.RigidBody, parent2: RAPIER.RigidBody ) => {
+        const createJoint = (anchor1: RAPIER.Vector, anchor2: RAPIER.Vector, parent1: RAPIER.RigidBody, parent2: RAPIER.RigidBody) => {
             const joint = RAPIER.JointData.spherical(anchor1, anchor2);
             this.world.createImpulseJoint(joint, parent1, parent2, true);
         }
@@ -227,26 +237,26 @@ export class Ragdoll extends Object3D {
 
     updateRagdoll() {
         if (!this.mesh) return;
-    
+
         for (const [key, boneName] of Object.entries(Ragdoll.boneMapping)) {
             const bone = this.mesh.getObjectByName(boneName);
             const body = this[key as RagdollParts];
-    
+
             if (bone && body) {
                 const translation = body.translation();
                 const rotation = body.rotation();
-    
+
                 const bodyPos = new Vector3(translation.x, translation.y, translation.z);
                 const bodyQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-    
+
                 const parent = bone.parent as Object3D;
                 if (parent) {
                     parent.worldToLocal(bodyPos);
                     bone.position.copy(bodyPos);
-    
+
                     const parentQuat = new Quaternion();
                     parent.getWorldQuaternion(parentQuat);
-    
+
                     const initialQuat = this.initialBoneWorldQuaternions.get(boneName);
                     if (initialQuat) {
                         const relativeQuat = bodyQuat.multiply(initialQuat);
