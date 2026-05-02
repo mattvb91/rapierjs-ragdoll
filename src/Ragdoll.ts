@@ -145,7 +145,7 @@ export class Ragdoll extends Object3D {
         this.armLowerLeft = this.world.createRigidBody(armLowerLBodyDesc);
         this.world.createCollider(armLowerLDesc, this.armLowerLeft);
 
-        const legSegmentHeight = torsoHeight * 0.8
+        const legSegmentHeight = torsoHeight * 1.2
         const legthickness = 0.18
 
         const legUpperRDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, legSegmentHeight / 2, legthickness / 2)
@@ -174,14 +174,14 @@ export class Ragdoll extends Object3D {
         const localAnchorRTorso = { x: (torsoWidth / 2) + stiffness, y: 0.1, z: 0 };
         const localAnchorRArm = { x: -armLength / 2, y: 0, z: 0 };
 
-        const localAnchorRArmBottom = { x: (armLength / 2) + stiffness, y: 0 / 2, z: 0.0 };
-        const localAnchorRArmLower = { x: -armLength / 2, y: 0 / 2, z: 0 };
+        const localAnchorRArmBottom = { x: (armLength / 2) + stiffness, y: 0, z: 0.0 };
+        const localAnchorRArmLower = { x: -armLength / 2, y: 0, z: 0 };
 
         const localAnchorLTorso = { x: -(torsoWidth / 2) - stiffness, y: 0.1, z: 0 };
         const localAnchorLArm = { x: armLength / 2, y: 0, z: 0 };
 
-        const localAnchorLArmBottom = { x: -(armLength / 2) - stiffness, y: 0 / 2, z: 0.0 };
-        const localAnchorLArmLower = { x: armLength / 2, y: 0 / 2, z: 0 };
+        const localAnchorLArmBottom = { x: -(armLength / 2) - stiffness, y: 0, z: 0.0 };
+        const localAnchorLArmLower = { x: armLength / 2, y: 0, z: 0 };
 
         const localAnchorRTorsoBottom = { x: (torsoWidth / 2) - legthickness / 2, y: -torsoHeight / 2 - stiffness, z: 0 };
         const localAnchorRLegUpper = { x: 0, y: legSegmentHeight / 2, z: 0 };
@@ -222,35 +222,48 @@ export class Ragdoll extends Object3D {
 
         if (!this.mesh) return
 
-        for (const [key, boneName] of Object.entries(Ragdoll.boneMapping)) {
+        // Walk top-down so child bones read fresh parent world transforms.
+        const orderedKeys: RagdollParts[] = [
+            'torso',
+            'head',
+            'armUpperLeft', 'armLowerLeft',
+            'armUpperRight', 'armLowerRight',
+            'thighLeft', 'shinLeft',
+            'thighRight', 'shinRight',
+        ];
+
+        for (const key of orderedKeys) {
+            const boneName = Ragdoll.boneMapping[key];
             const bone = this.mesh.getObjectByName(boneName);
-            const body = this[key as RagdollParts];
+            const body = this[key];
+            if (!bone || !body) continue;
 
-            if (bone && body) {
-                const translation = body.translation();
-                const rotation = body.rotation();
+            const parent = bone.parent as Object3D;
+            if (!parent) continue;
+            parent.updateMatrixWorld(true);
 
-                const bodyPos = new Vector3(translation.x, translation.y, translation.z);
-                const bodyQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+            const rotation = body.rotation();
+            const bodyQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
 
-                const parent = bone.parent as Object3D;
-                if (parent) {
-                    parent.worldToLocal(bodyPos);
-                    bone.position.copy(bodyPos);
-
-                    const parentQuat = new Quaternion();
-                    parent.getWorldQuaternion(parentQuat);
-
-                    const initialQuat = this.initialBoneWorldQuaternions.get(boneName);
-                    if (initialQuat) {
-                        const relativeQuat = bodyQuat.multiply(initialQuat);
-                        bone.quaternion.copy(parentQuat.invert()).multiply(relativeQuat);
-                    } else {
-                        const combinedQuat = bodyQuat.multiply(parentQuat);
-                        bone.quaternion.copy(combinedQuat);
-                    }
-                }
+            // Only the root bone gets its position from physics. Child bones keep
+            // their rest-pose offsets so the skinned mesh isn't stretched.
+            if (key === 'torso') {
+                const t = body.translation();
+                const bodyPos = new Vector3(t.x, t.y, t.z);
+                parent.worldToLocal(bodyPos);
+                bone.position.copy(bodyPos);
             }
+
+            const parentQuat = new Quaternion();
+            parent.getWorldQuaternion(parentQuat);
+
+            const initialQuat = this.initialBoneWorldQuaternions.get(boneName);
+            const targetWorld = initialQuat
+                ? bodyQuat.clone().multiply(initialQuat)
+                : bodyQuat.clone();
+
+            bone.quaternion.copy(parentQuat.invert()).multiply(targetWorld);
+            bone.updateMatrixWorld(true);
         }
     }
 
