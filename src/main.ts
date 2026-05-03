@@ -126,7 +126,6 @@ mouseHelperMesh.visible = false
 mouseHelperMesh.position.set(0, 0, 0)
 scene.add(mouseHelperMesh, axisHelper)
 
-let collision: THREE.Intersection<THREE.Object3D>
 let activeRagdoll: Ragdoll | null = null
 let pulling = false
 
@@ -160,17 +159,21 @@ function animate() {
   renderer.render(scene, camera);
   raycaster.setFromCamera(cursor, camera)
 
-  if (collision = raycaster.intersectObjects(ragdolls.map(obj => obj?.mesh ?? new THREE.Object3D))[0]) {
-    ragdolls.forEach(doll => {
-      if (doll.mesh?.getObjectByProperty('uuid', collision.object?.uuid)) {
-        activeRagdoll = doll
-      }
-    })
+  const { origin, direction } = raycaster.ray
+  const rapierRay = new RAPIER.Ray({ x: origin.x, y: origin.y, z: origin.z }, { x: direction.x, y: direction.y, z: direction.z })
+  const rayHit = world.castRay(rapierRay, 100, true)
 
+  let collisionPoint: THREE.Vector3 | undefined
+  const hitRagdoll = rayHit ? ragdolls.find(d => d.ownsRigidBody(rayHit.collider.parent())) : null
+
+  if (hitRagdoll) {
+    activeRagdoll = hitRagdoll
+    const toi = rayHit!.timeOfImpact
+    collisionPoint = new THREE.Vector3(origin.x + direction.x * toi, origin.y + direction.y * toi, origin.z + direction.z * toi)
     mouseHelperMesh.visible = true
     axisHelper.visible = true
-    mouseHelperMesh.position.set(collision.point.x, collision.point.y, collision.point.z)
-    axisHelper.position.set(collision.point.x, collision.point.y, collision.point.z)
+    mouseHelperMesh.position.copy(collisionPoint)
+    axisHelper.position.copy(collisionPoint)
     orbitControls.enableRotate = false
   } else {
     axisHelper.visible = false
@@ -178,8 +181,8 @@ function animate() {
     orbitControls.enableRotate = true
   }
 
-  if(activeRagdoll && pulling) {
-    activeRagdoll.mousePull(cursor, camera, collision?.point)
+  if (activeRagdoll && pulling) {
+    activeRagdoll.mousePull(cursor, camera, collisionPoint!)
   }
   
   stats.end()

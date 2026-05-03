@@ -278,6 +278,14 @@ export class Ragdoll extends Object3D {
         }
     }
 
+    public ownsRigidBody(body: RAPIER.RigidBody | null): boolean {
+        if (!body) return false;
+        for (const key of Object.keys(Ragdoll.boneMapping) as RagdollParts[]) {
+            if (this[key]?.handle === body.handle) return true;
+        }
+        return false;
+    }
+
     public releasePull() {
         console.log('Released')
         this.pullingBodyRigid = null
@@ -288,7 +296,7 @@ export class Ragdoll extends Object3D {
             this.pullingBodyRigid = this.findClosestBody(target)
         }
 
-        this.pullingBodyRigid?.applyImpulse({ x: 0, y: 0.018, z: 0 }, true)
+        this.pullingBodyRigid?.applyImpulse({ x: 0, y: 0.0205, z: 0 }, true)
 
         // Todo the impusle should follow the mouse pointer
     }
