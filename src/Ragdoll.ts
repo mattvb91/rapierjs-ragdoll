@@ -23,6 +23,8 @@ export class Ragdoll extends Object3D {
 
     mesh: Group<Object3DEventMap> | null = null;
 
+    private static readonly torsoHeight = 0.55;
+
     private static readonly boneMapping = {
         head: 'head',
         torso: 'spine',
@@ -102,14 +104,18 @@ export class Ragdoll extends Object3D {
     private createRagdoll() {
 
         // Adjust this to make it more flexible
-        const stiffness = 0.05
+        const stiffness = 0.03
 
+        //Taken from blender bone lengths
         const torsoWidth = 0.4
-        const torsoHeight = .4
+        const thighLength = .38
+        const shinLength = .43
+        const upperArmLength = .3
+        const lowerArmLength = .42
 
         const initialSpawn = new Vector3(0, 10, 0)
 
-        const torsoDesc = RAPIER.ColliderDesc.cuboid(torsoWidth / 2, torsoHeight / 2, 0.1);
+        const torsoDesc = RAPIER.ColliderDesc.cuboid(torsoWidth / 2, Ragdoll.torsoHeight / 2, 0.1);
         const torsoBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(...initialSpawn.toArray())
         this.torso = this.world.createRigidBody(torsoBodyDesc);
         this.world.createCollider(torsoDesc, this.torso);
@@ -118,82 +124,80 @@ export class Ragdoll extends Object3D {
         const headDesc = RAPIER.ColliderDesc.cuboid(headSize / 2, headSize / 2, headSize / 2);
         const headBodyDesc = RAPIER.RigidBodyDesc
             .dynamic()
-            .setTranslation(0, this.torso.translation().y + headSize / 2 + torsoHeight / 2 + stiffness, 0)
+            .setTranslation(0, this.torso.translation().y + headSize / 2 + Ragdoll.torsoHeight / 2 + stiffness, 0)
         this.head = this.world.createRigidBody(headBodyDesc);
         this.world.createCollider(headDesc, this.head);
 
-        const armLength = 0.4
         const armThickness = 0.15
 
-        const armUpperRDesc = RAPIER.ColliderDesc.cuboid(armLength / 2, armThickness / 2, armThickness / 2);
+        const armUpperRDesc = RAPIER.ColliderDesc.cuboid(upperArmLength / 2, armThickness / 2, armThickness / 2);
         const armUpperRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth + stiffness, this.torso.translation().y + 0.1, 0);
         this.armUpperRight = this.world.createRigidBody(armUpperRBodyDesc);
         this.world.createCollider(armUpperRDesc, this.armUpperRight);
 
-        const armLowerRDesc = RAPIER.ColliderDesc.cuboid(armLength / 2, armThickness / 2, armThickness / 2);
-        const armLowerRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth + armLength + stiffness * 2, this.torso.translation().y + 0.1, 0)
+        const armLowerRDesc = RAPIER.ColliderDesc.cuboid(lowerArmLength / 2, armThickness / 2, armThickness / 2);
+        const armLowerRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth + lowerArmLength + stiffness * 2, this.torso.translation().y + 0.1, 0)
         this.armLowerRight = this.world.createRigidBody(armLowerRBodyDesc);
         this.world.createCollider(armLowerRDesc, this.armLowerRight);
 
-        const armUpperLDesc = RAPIER.ColliderDesc.cuboid(armLength / 2, armThickness / 2, armThickness / 2);
+        const armUpperLDesc = RAPIER.ColliderDesc.cuboid(upperArmLength / 2, armThickness / 2, armThickness / 2);
         const armUpperLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth - stiffness, this.torso.translation().y + 0.1, 0)
         this.armUpperLeft = this.world.createRigidBody(armUpperLBodyDesc);
         this.world.createCollider(armUpperLDesc, this.armUpperLeft);
 
-        const armLowerLDesc = RAPIER.ColliderDesc.cuboid(armLength / 2, armThickness / 2, armThickness / 2);
-        const armLowerLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth - armLength - stiffness * 2, this.torso.translation().y + 0.1, 0)
+        const armLowerLDesc = RAPIER.ColliderDesc.cuboid(lowerArmLength / 2, armThickness / 2, armThickness / 2);
+        const armLowerLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth - lowerArmLength - stiffness * 2, this.torso.translation().y + 0.1, 0)
         this.armLowerLeft = this.world.createRigidBody(armLowerLBodyDesc);
         this.world.createCollider(armLowerLDesc, this.armLowerLeft);
 
-        const legSegmentHeight = torsoHeight * 0.8
         const legthickness = 0.18
 
-        const legUpperRDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, legSegmentHeight / 2, legthickness / 2)
-        const legUpperRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth / 2 - 0.1, torsoBodyDesc.translation.y - torsoHeight / 2 - legSegmentHeight / 2 - stiffness, 0)
+        const legUpperRDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, thighLength /2, legthickness / 2)
+        const legUpperRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth / 2 - 0.1, torsoBodyDesc.translation.y - Ragdoll.torsoHeight / 2 - thighLength / 2 - stiffness, 0)
         this.thighRight = this.world.createRigidBody(legUpperRBodyDesc)
         this.world.createCollider(legUpperRDesc, this.thighRight);
 
-        const legLowerRDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, legSegmentHeight / 2, legthickness / 2)
-        const legLowerRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(legUpperRBodyDesc.translation.x, legUpperRBodyDesc.translation.y - legSegmentHeight - stiffness, 0)
+        const legLowerRDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, shinLength / 2, legthickness / 2)
+        const legLowerRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(legUpperRBodyDesc.translation.x, legUpperRBodyDesc.translation.y - shinLength - stiffness, 0)
         this.shinRight = this.world.createRigidBody(legLowerRBodyDesc)
         this.world.createCollider(legLowerRDesc, this.shinRight);
 
-        const legUpperLDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, legSegmentHeight / 2, legthickness / 2)
-        const legUpperLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth / 2 + 0.1, torsoBodyDesc.translation.y - torsoHeight / 2 - legSegmentHeight / 2 - stiffness, 0)
+        const legUpperLDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, thighLength / 2, legthickness / 2)
+        const legUpperLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth / 2 + 0.1, torsoBodyDesc.translation.y - Ragdoll.torsoHeight / 2 - thighLength / 2 - stiffness, 0)
         this.thighLeft = this.world.createRigidBody(legUpperLBodyDesc)
         this.world.createCollider(legUpperLDesc, this.thighLeft);
 
-        const legLowerLDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, legSegmentHeight / 2, legthickness / 2)
-        const legLowerLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(legUpperLBodyDesc.translation.x, legUpperRBodyDesc.translation.y - legSegmentHeight - stiffness, 0)
+        const legLowerLDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, shinLength / 2, legthickness / 2)
+        const legLowerLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(legUpperLBodyDesc.translation.x, legUpperRBodyDesc.translation.y - shinLength - stiffness, 0)
         this.shinLeft = this.world.createRigidBody(legLowerLBodyDesc)
         this.world.createCollider(legLowerLDesc, this.shinLeft);
 
         const localAnchorHead = { x: 0, y: -headSize / 2 - stiffness, z: 0 };
-        const localAnchorNeck = { x: 0, y: torsoHeight / 2, z: 0 };
+        const localAnchorNeck = { x: 0, y: Ragdoll.torsoHeight / 2, z: 0 };
 
-        const localAnchorRTorso = { x: (torsoWidth / 2) + stiffness, y: 0.1, z: 0 };
-        const localAnchorRArm = { x: -armLength / 2, y: 0, z: 0 };
+        const localAnchorRTorso = { x: (torsoWidth / 2) + stiffness, y: torsoWidth / 2, z: 0 };
+        const localAnchorRArm = { x: -upperArmLength / 2, y: 0, z: 0 };
 
-        const localAnchorRArmBottom = { x: (armLength / 2) + stiffness, y: 0 / 2, z: 0.0 };
-        const localAnchorRArmLower = { x: -armLength / 2, y: 0 / 2, z: 0 };
+        const localAnchorRArmBottom = { x: (upperArmLength / 2) + stiffness, y: 0, z: 0.0 };
+        const localAnchorRArmLower = { x: -lowerArmLength / 2, y: 0, z: 0 };
 
-        const localAnchorLTorso = { x: -(torsoWidth / 2) - stiffness, y: 0.1, z: 0 };
-        const localAnchorLArm = { x: armLength / 2, y: 0, z: 0 };
+        const localAnchorLTorso = { x: -(torsoWidth / 2) - stiffness, y: torsoWidth / 2, z: 0 };
+        const localAnchorLArm = { x: upperArmLength / 2, y: 0, z: 0 };
 
-        const localAnchorLArmBottom = { x: -(armLength / 2) - stiffness, y: 0 / 2, z: 0.0 };
-        const localAnchorLArmLower = { x: armLength / 2, y: 0 / 2, z: 0 };
+        const localAnchorLArmBottom = { x: -(upperArmLength / 2) - stiffness, y: 0, z: 0.0 };
+        const localAnchorLArmLower = { x: lowerArmLength / 2, y: 0, z: 0 };
 
-        const localAnchorRTorsoBottom = { x: (torsoWidth / 2) - legthickness / 2, y: -torsoHeight / 2 - stiffness, z: 0 };
-        const localAnchorRLegUpper = { x: 0, y: legSegmentHeight / 2, z: 0 };
+        const localAnchorRTorsoBottom = { x: (torsoWidth / 2) - legthickness / 2, y: -Ragdoll.torsoHeight / 2 - stiffness, z: 0 };
+        const localAnchorRLegUpper = { x: 0, y: thighLength / 2, z: 0 };
 
-        const localAnchorLTorsoBottom = { x: -(torsoWidth / 2) + legthickness / 2, y: -torsoHeight / 2 - stiffness, z: 0 };
-        const localAnchorLLegUpper = { x: 0, y: legSegmentHeight / 2, z: 0 };
+        const localAnchorLTorsoBottom = { x: -(torsoWidth / 2) + legthickness / 2, y: -Ragdoll.torsoHeight / 2 - stiffness, z: 0 };
+        const localAnchorLLegUpper = { x: 0, y: thighLength / 2, z: 0 };
 
-        const localAnchorRLegUpperLower = { x: 0, y: -legSegmentHeight / 2 - stiffness, z: 0 };
-        const localAnchorRLegLowerTop = { x: 0, y: legSegmentHeight / 2, z: 0 };
+        const localAnchorRLegUpperLower = { x: 0, y: -shinLength / 2 - stiffness, z: 0 };
+        const localAnchorRLegLowerTop = { x: 0, y: shinLength / 2, z: 0 };
 
-        const localAnchorLLegUpperLower = { x: 0, y: -legSegmentHeight / 2 - stiffness, z: 0 };
-        const localAnchorLLegLowerTop = { x: 0, y: legSegmentHeight / 2, z: 0 };
+        const localAnchorLLegUpperLower = { x: 0, y: -thighLength / 2 - stiffness, z: 0 };
+        const localAnchorLLegLowerTop = { x: 0, y: thighLength / 2, z: 0 };
 
         const createJoint = (anchor1: RAPIER.Vector, anchor2: RAPIER.Vector, parent1: RAPIER.RigidBody, parent2: RAPIER.RigidBody) => {
             const joint = RAPIER.JointData.spherical(anchor1, anchor2);
@@ -211,7 +215,7 @@ export class Ragdoll extends Object3D {
         createJoint(localAnchorLLegUpperLower, localAnchorLLegLowerTop, this.thighLeft, this.shinLeft)      // knee joint left
 
         // For debuging you can disable this to freeze it and see joints in initial state
-        const enabled = true;
+        const enabled = true
 
         for (const [key, _] of Object.entries(Ragdoll.boneMapping)) {
             this[key as RagdollParts].setEnabled(enabled)
@@ -222,35 +226,52 @@ export class Ragdoll extends Object3D {
 
         if (!this.mesh) return
 
-        for (const [key, boneName] of Object.entries(Ragdoll.boneMapping)) {
+        this.mesh.updateMatrixWorld(true);
+
+        // Walk top-down so child bones read fresh parent world transforms.
+        const orderedKeys: RagdollParts[] = [
+            'torso',
+            'head',
+            'armUpperLeft', 'armLowerLeft',
+            'armUpperRight', 'armLowerRight',
+            'thighLeft', 'shinLeft',
+            'thighRight', 'shinRight',
+        ];
+
+        for (const key of orderedKeys) {
+            const boneName = Ragdoll.boneMapping[key];
             const bone = this.mesh.getObjectByName(boneName);
-            const body = this[key as RagdollParts];
+            const body = this[key];
+            if (!bone || !body) continue;
 
-            if (bone && body) {
-                const translation = body.translation();
-                const rotation = body.rotation();
+            const parent = bone.parent as Object3D;
+            if (!parent) continue;
 
-                const bodyPos = new Vector3(translation.x, translation.y, translation.z);
-                const bodyQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+            const rotation = body.rotation();
+            const bodyQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
 
-                const parent = bone.parent as Object3D;
-                if (parent) {
-                    parent.worldToLocal(bodyPos);
-                    bone.position.copy(bodyPos);
-
-                    const parentQuat = new Quaternion();
-                    parent.getWorldQuaternion(parentQuat);
-
-                    const initialQuat = this.initialBoneWorldQuaternions.get(boneName);
-                    if (initialQuat) {
-                        const relativeQuat = bodyQuat.multiply(initialQuat);
-                        bone.quaternion.copy(parentQuat.invert()).multiply(relativeQuat);
-                    } else {
-                        const combinedQuat = bodyQuat.multiply(parentQuat);
-                        bone.quaternion.copy(combinedQuat);
-                    }
-                }
+            // Only the root bone gets its position from physics. Child bones keep
+            // their rest-pose offsets so the skinned mesh isn't stretched.
+            if (key === 'torso') {
+                const t = body.translation();
+                // Offset is in the body's local frame, so rotate it into world space
+                // before applying — otherwise the bone drifts as the rigid bodies move.
+                const offset = new Vector3(0, -Ragdoll.torsoHeight / 2, 0).applyQuaternion(bodyQuat);
+                const bodyPos = new Vector3(t.x + offset.x, t.y + offset.y, t.z + offset.z);
+                parent.worldToLocal(bodyPos);
+                bone.position.copy(bodyPos);
             }
+
+            const parentQuat = new Quaternion();
+            parent.getWorldQuaternion(parentQuat);
+
+            const initialQuat = this.initialBoneWorldQuaternions.get(boneName);
+            const targetWorld = initialQuat
+                ? bodyQuat.clone().multiply(initialQuat)
+                : bodyQuat.clone();
+
+            bone.quaternion.copy(parentQuat.invert()).multiply(targetWorld);
+            bone.updateMatrixWorld(true);
         }
     }
 
