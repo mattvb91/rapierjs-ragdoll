@@ -1,5 +1,5 @@
-import RAPIER, { RigidBody, World } from "@dimforge/rapier3d-compat";
-import { Camera, Group, Mesh, MeshNormalMaterial, MeshStandardMaterial, Object3D, Object3DEventMap, Quaternion, Scene, Vector2, Vector3 } from "three";
+import RAPIER, { World } from "@dimforge/rapier3d-compat";
+import { Group, Mesh, MeshNormalMaterial, MeshStandardMaterial, Object3D, Object3DEventMap, Quaternion, Scene, Vector3 } from "three";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
 
 type RagdollParts = 'head' | 'torso' | 'armUpperRight' | 'armLowerRight' | 'armUpperLeft' | 'armLowerLeft' | 'thighRight' | 'shinRight' | 'thighLeft' | 'shinLeft';
@@ -38,8 +38,6 @@ export class Ragdoll extends Object3D {
         shinRight: 'shinr'
     };
     private initialBoneWorldQuaternions: Map<string, Quaternion> = new Map();
-
-    pullingBodyRigid?: RigidBody | null;
 
     constructor(world: World, scene: Scene, loader: GLTFLoader) {
         super()
@@ -98,7 +96,7 @@ export class Ragdoll extends Object3D {
                 console.log((xhr.loaded / xhr.total * 100) + '% loaded');
             },
             function (error) {
-                console.log('An error happened');
+                console.log('An error happened:', error);
             }
         );
     }
@@ -286,22 +284,7 @@ export class Ragdoll extends Object3D {
         return false;
     }
 
-    public releasePull() {
-        console.log('Released')
-        this.pullingBodyRigid = null
-    }
-
-    mousePull(cursor: Vector2, camera: Camera, target: Vector3) {
-        if (!this.pullingBodyRigid) {
-            this.pullingBodyRigid = this.findClosestBody(target)
-        }
-
-        this.pullingBodyRigid?.applyImpulse({ x: 0, y: 0.0205, z: 0 }, true)
-
-        // Todo the impusle should follow the mouse pointer
-    }
-
-    private findClosestBody(point: Vector3): RAPIER.RigidBody | null {
+    public findClosestBody(point: Vector3): RAPIER.RigidBody | null {
         if(!point) return null
         
         let closest: RAPIER.RigidBody | null = null;

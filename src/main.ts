@@ -128,6 +128,7 @@ scene.add(mouseHelperMesh, axisHelper)
 
 let activeRagdoll: Ragdoll | null = null
 let pulling = false
+let pullingBody: ReturnType<Ragdoll['findClosestBody']> = null
 
 window.addEventListener('mousedown', ev => {
   if (ev.button === 0 && activeRagdoll) {
@@ -137,7 +138,7 @@ window.addEventListener('mousedown', ev => {
 
 window.addEventListener('mouseup', () => {
   pulling = false
-  activeRagdoll?.releasePull()
+  pullingBody = null
   activeRagdoll = null
 })
 
@@ -182,7 +183,10 @@ function animate() {
   }
 
   if (activeRagdoll && pulling) {
-    activeRagdoll.mousePull(cursor, camera, collisionPoint!)
+    if (!pullingBody) {
+      pullingBody = activeRagdoll.findClosestBody(collisionPoint!)
+    }
+    pullingBody?.applyImpulse({ x: 0, y: 0.0205, z: 0 }, true)
   }
   
   stats.end()
