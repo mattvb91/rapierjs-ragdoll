@@ -17,10 +17,16 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
 document.body.appendChild(renderer.domElement);
+
+const hint = document.createElement('div')
+hint.id = 'hint'
+hint.textContent = 'Click / press on ragdoll to interact'
+document.body.appendChild(hint)
 
 const sky = new Sky();
 sky.scale.setScalar(450000);
@@ -108,11 +114,18 @@ const windowSize = {
 
 let cursor = new THREE.Vector2()
 
-document.addEventListener('mousemove', (ev) => {
-  cursor.setX(ev.clientX / windowSize.width * 2 - 1)
-  cursor.setY(-(ev.clientY / windowSize.height * 2 - 1))
+function updateCursor(clientX: number, clientY: number) {
+  cursor.setX(clientX / windowSize.width * 2 - 1)
+  cursor.setY(-(clientY / windowSize.height * 2 - 1))
+}
 
-});
+document.addEventListener('mousemove', (ev) => updateCursor(ev.clientX, ev.clientY))
+
+document.addEventListener('touchmove', (ev) => {
+  if (!pulling) return
+  ev.preventDefault()
+  updateCursor(ev.touches[0].clientX, ev.touches[0].clientY)
+}, { passive: false })
 
 const axisHelper = new THREE.AxesHelper(2)
 const mouseHelper = new THREE.SphereGeometry(0.1, 16, 16)
@@ -130,16 +143,29 @@ let activeRagdoll: Ragdoll | null = null
 let pulling = false
 let pullingBody: ReturnType<Ragdoll['findClosestBody']> = null
 
-window.addEventListener('mousedown', ev => {
-  if (ev.button === 0 && activeRagdoll) {
-    pulling = true
-  }
-})
+function startPull() {
+  pulling = true
+}
 
-window.addEventListener('mouseup', () => {
+function endPull() {
   pulling = false
   pullingBody = null
   activeRagdoll = null
+}
+
+window.addEventListener('mousedown', ev => { if (ev.button === 0) startPull() })
+window.addEventListener('mouseup', endPull)
+
+window.addEventListener('touchstart', (ev) => {
+  if (ev.target !== renderer.domElement) return
+  ev.preventDefault()
+  updateCursor(ev.touches[0].clientX, ev.touches[0].clientY)
+  startPull()
+}, { passive: false })
+
+window.addEventListener('touchend', (ev) => {
+  if (ev.target !== renderer.domElement) return
+  endPull()
 })
 
 function animate() {
