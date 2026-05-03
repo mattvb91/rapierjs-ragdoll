@@ -2,7 +2,7 @@
  * Live demo: https://mavon.ie/demos/rapierjs-ragdoll
  */
 
-import { DRACOLoader, GLTFLoader, OrbitControls, Sky, Timer } from 'three/examples/jsm/Addons.js';
+import { DRACOLoader, GLTFLoader, OrbitControls, Sky } from 'three/examples/jsm/Addons.js';
 import './style.css';
 
 import { Pane } from 'tweakpane';
@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { RapierDebugRenderer } from './DebugRenderer';
 import { Ragdoll } from './Ragdoll';
+import { Timer } from 'three';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
