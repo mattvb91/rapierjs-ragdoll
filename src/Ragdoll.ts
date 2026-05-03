@@ -23,6 +23,8 @@ export class Ragdoll extends Object3D {
 
     mesh: Group<Object3DEventMap> | null = null;
 
+    private static readonly torsoHeight = 0.55;
+
     private static readonly boneMapping = {
         head: 'head',
         torso: 'spine',
@@ -106,7 +108,6 @@ export class Ragdoll extends Object3D {
 
         //Taken from blender bone lengths
         const torsoWidth = 0.4
-        const torsoHeight = .55
         const thighLength = .38
         const shinLength = .43
         const upperArmLength = .3
@@ -114,7 +115,7 @@ export class Ragdoll extends Object3D {
 
         const initialSpawn = new Vector3(0, 10, 0)
 
-        const torsoDesc = RAPIER.ColliderDesc.cuboid(torsoWidth / 2, torsoHeight / 2, 0.1);
+        const torsoDesc = RAPIER.ColliderDesc.cuboid(torsoWidth / 2, Ragdoll.torsoHeight / 2, 0.1);
         const torsoBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(...initialSpawn.toArray())
         this.torso = this.world.createRigidBody(torsoBodyDesc);
         this.world.createCollider(torsoDesc, this.torso);
@@ -123,7 +124,7 @@ export class Ragdoll extends Object3D {
         const headDesc = RAPIER.ColliderDesc.cuboid(headSize / 2, headSize / 2, headSize / 2);
         const headBodyDesc = RAPIER.RigidBodyDesc
             .dynamic()
-            .setTranslation(0, this.torso.translation().y + headSize / 2 + torsoHeight / 2 + stiffness, 0)
+            .setTranslation(0, this.torso.translation().y + headSize / 2 + Ragdoll.torsoHeight / 2 + stiffness, 0)
         this.head = this.world.createRigidBody(headBodyDesc);
         this.world.createCollider(headDesc, this.head);
 
@@ -152,7 +153,7 @@ export class Ragdoll extends Object3D {
         const legthickness = 0.18
 
         const legUpperRDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, thighLength /2, legthickness / 2)
-        const legUpperRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth / 2 - 0.1, torsoBodyDesc.translation.y - torsoHeight / 2 - thighLength / 2 - stiffness, 0)
+        const legUpperRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth / 2 - 0.1, torsoBodyDesc.translation.y - Ragdoll.torsoHeight / 2 - thighLength / 2 - stiffness, 0)
         this.thighRight = this.world.createRigidBody(legUpperRBodyDesc)
         this.world.createCollider(legUpperRDesc, this.thighRight);
 
@@ -162,7 +163,7 @@ export class Ragdoll extends Object3D {
         this.world.createCollider(legLowerRDesc, this.shinRight);
 
         const legUpperLDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, thighLength / 2, legthickness / 2)
-        const legUpperLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth / 2 + 0.1, torsoBodyDesc.translation.y - torsoHeight / 2 - thighLength / 2 - stiffness, 0)
+        const legUpperLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth / 2 + 0.1, torsoBodyDesc.translation.y - Ragdoll.torsoHeight / 2 - thighLength / 2 - stiffness, 0)
         this.thighLeft = this.world.createRigidBody(legUpperLBodyDesc)
         this.world.createCollider(legUpperLDesc, this.thighLeft);
 
@@ -172,7 +173,7 @@ export class Ragdoll extends Object3D {
         this.world.createCollider(legLowerLDesc, this.shinLeft);
 
         const localAnchorHead = { x: 0, y: -headSize / 2 - stiffness, z: 0 };
-        const localAnchorNeck = { x: 0, y: torsoHeight / 2, z: 0 };
+        const localAnchorNeck = { x: 0, y: Ragdoll.torsoHeight / 2, z: 0 };
 
         const localAnchorRTorso = { x: (torsoWidth / 2) + stiffness, y: 0.1, z: 0 };
         const localAnchorRArm = { x: -upperArmLength / 2, y: 0, z: 0 };
@@ -186,10 +187,10 @@ export class Ragdoll extends Object3D {
         const localAnchorLArmBottom = { x: -(upperArmLength / 2) - stiffness, y: 0, z: 0.0 };
         const localAnchorLArmLower = { x: lowerArmLength / 2, y: 0, z: 0 };
 
-        const localAnchorRTorsoBottom = { x: (torsoWidth / 2) - legthickness / 2, y: -torsoHeight / 2 - stiffness, z: 0 };
+        const localAnchorRTorsoBottom = { x: (torsoWidth / 2) - legthickness / 2, y: -Ragdoll.torsoHeight / 2 - stiffness, z: 0 };
         const localAnchorRLegUpper = { x: 0, y: thighLength / 2, z: 0 };
 
-        const localAnchorLTorsoBottom = { x: -(torsoWidth / 2) + legthickness / 2, y: -torsoHeight / 2 - stiffness, z: 0 };
+        const localAnchorLTorsoBottom = { x: -(torsoWidth / 2) + legthickness / 2, y: -Ragdoll.torsoHeight / 2 - stiffness, z: 0 };
         const localAnchorLLegUpper = { x: 0, y: thighLength / 2, z: 0 };
 
         const localAnchorRLegUpperLower = { x: 0, y: -shinLength / 2 - stiffness, z: 0 };
@@ -214,7 +215,7 @@ export class Ragdoll extends Object3D {
         createJoint(localAnchorLLegUpperLower, localAnchorLLegLowerTop, this.thighLeft, this.shinLeft)      // knee joint left
 
         // For debuging you can disable this to freeze it and see joints in initial state
-        const enabled = true;
+        const enabled = true
 
         for (const [key, _] of Object.entries(Ragdoll.boneMapping)) {
             this[key as RagdollParts].setEnabled(enabled)
@@ -252,7 +253,7 @@ export class Ragdoll extends Object3D {
             // their rest-pose offsets so the skinned mesh isn't stretched.
             if (key === 'torso') {
                 const t = body.translation();
-                const bodyPos = new Vector3(t.x, t.y, t.z);
+                const bodyPos = new Vector3(t.x, t.y - Ragdoll.torsoHeight / 2, t.z);
                 parent.worldToLocal(bodyPos);
                 bone.position.copy(bodyPos);
             }
