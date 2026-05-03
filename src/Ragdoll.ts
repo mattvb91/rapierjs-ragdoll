@@ -175,13 +175,13 @@ export class Ragdoll extends Object3D {
         const localAnchorHead = { x: 0, y: -headSize / 2 - stiffness, z: 0 };
         const localAnchorNeck = { x: 0, y: Ragdoll.torsoHeight / 2, z: 0 };
 
-        const localAnchorRTorso = { x: (torsoWidth / 2) + stiffness, y: 0.1, z: 0 };
+        const localAnchorRTorso = { x: (torsoWidth / 2) + stiffness, y: torsoWidth / 2, z: 0 };
         const localAnchorRArm = { x: -upperArmLength / 2, y: 0, z: 0 };
 
         const localAnchorRArmBottom = { x: (upperArmLength / 2) + stiffness, y: 0, z: 0.0 };
         const localAnchorRArmLower = { x: -lowerArmLength / 2, y: 0, z: 0 };
 
-        const localAnchorLTorso = { x: -(torsoWidth / 2) - stiffness, y: 0.1, z: 0 };
+        const localAnchorLTorso = { x: -(torsoWidth / 2) - stiffness, y: torsoWidth / 2, z: 0 };
         const localAnchorLArm = { x: upperArmLength / 2, y: 0, z: 0 };
 
         const localAnchorLArmBottom = { x: -(upperArmLength / 2) - stiffness, y: 0, z: 0.0 };
@@ -226,6 +226,8 @@ export class Ragdoll extends Object3D {
 
         if (!this.mesh) return
 
+        this.mesh.updateMatrixWorld(true);
+
         // Walk top-down so child bones read fresh parent world transforms.
         const orderedKeys: RagdollParts[] = [
             'torso',
@@ -244,7 +246,6 @@ export class Ragdoll extends Object3D {
 
             const parent = bone.parent as Object3D;
             if (!parent) continue;
-            parent.updateMatrixWorld(true);
 
             const rotation = body.rotation();
             const bodyQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
@@ -253,7 +254,10 @@ export class Ragdoll extends Object3D {
             // their rest-pose offsets so the skinned mesh isn't stretched.
             if (key === 'torso') {
                 const t = body.translation();
-                const bodyPos = new Vector3(t.x, t.y - Ragdoll.torsoHeight / 2, t.z);
+                // Offset is in the body's local frame, so rotate it into world space
+                // before applying — otherwise the bone drifts as the rigid bodies move.
+                const offset = new Vector3(0, -Ragdoll.torsoHeight / 2, 0).applyQuaternion(bodyQuat);
+                const bodyPos = new Vector3(t.x + offset.x, t.y + offset.y, t.z + offset.z);
                 parent.worldToLocal(bodyPos);
                 bone.position.copy(bodyPos);
             }
