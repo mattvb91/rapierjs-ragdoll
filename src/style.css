@@ -16,3 +16,25 @@
 body, html {
   margin: 0;
 }
+
+#hint {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  #hint {
+    left: 0;
+    transform: none;
+    width: 100%;
+    text-align: center;
+    white-space: normal;
+  }
+}

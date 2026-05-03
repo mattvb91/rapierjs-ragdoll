@@ -17,10 +17,16 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
 document.body.appendChild(renderer.domElement);
+
+const hint = document.createElement('div')
+hint.id = 'hint'
+hint.textContent = 'Click / press on ragdoll to interact'
+document.body.appendChild(hint)
 
 const sky = new Sky();
 sky.scale.setScalar(450000);
@@ -99,22 +105,116 @@ stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
 
 document.body.appendChild(stats.dom);
 
+const raycaster = new THREE.Raycaster()
+
+const windowSize = {
+  width: window.innerWidth,
+  height: window.innerHeight
+}
+
+let cursor = new THREE.Vector2()
+
+function updateCursor(clientX: number, clientY: number) {
+  cursor.setX(clientX / windowSize.width * 2 - 1)
+  cursor.setY(-(clientY / windowSize.height * 2 - 1))
+}
+
+document.addEventListener('mousemove', (ev) => updateCursor(ev.clientX, ev.clientY))
+
+document.addEventListener('touchmove', (ev) => {
+  if (!pulling) return
+  ev.preventDefault()
+  updateCursor(ev.touches[0].clientX, ev.touches[0].clientY)
+}, { passive: false })
+
+const axisHelper = new THREE.AxesHelper(2)
+const mouseHelper = new THREE.SphereGeometry(0.1, 16, 16)
+const mouseHelperMesh = new THREE.Mesh(mouseHelper, new THREE.MeshBasicMaterial({
+  color: "yellow",
+  opacity: 0.6,
+  transparent: true
+}))
+
+mouseHelperMesh.visible = false
+mouseHelperMesh.position.set(0, 0, 0)
+scene.add(mouseHelperMesh, axisHelper)
+
+let activeRagdoll: Ragdoll | null = null
+let pulling = false
+let pullingBody: ReturnType<Ragdoll['findClosestBody']> = null
+
+function startPull() {
+  pulling = true
+}
+
+function endPull() {
+  pulling = false
+  pullingBody = null
+  activeRagdoll = null
+}
+
+window.addEventListener('mousedown', ev => { if (ev.button === 0) startPull() })
+window.addEventListener('mouseup', endPull)
+
+window.addEventListener('touchstart', (ev) => {
+  if (ev.target !== renderer.domElement) return
+  ev.preventDefault()
+  updateCursor(ev.touches[0].clientX, ev.touches[0].clientY)
+  startPull()
+}, { passive: false })
+
+window.addEventListener('touchend', (ev) => {
+  if (ev.target !== renderer.domElement) return
+  endPull()
+})
+
 function animate() {
   timer.update()
   stats.begin()
+
   PARAMS.rigidBodyCount = world.bodies.len()
   PARAMS.ragdollsCount = ragdolls.length
 
   pane.refresh()
-  
+
   world.gravity = new RAPIER.Vector3(0, PARAMS.gravity, 0);
   world.step()
   ragdolls.forEach(ragdoll => ragdoll.update(timer.getDelta()))
   rapierDebugRender.update()
-  orbitControls.update(timer.getDelta())
+  orbitControls.update()
 
   renderer.render(scene, camera);
+  raycaster.setFromCamera(cursor, camera)
 
+  const { origin, direction } = raycaster.ray
+  const rapierRay = new RAPIER.Ray({ x: origin.x, y: origin.y, z: origin.z }, { x: direction.x, y: direction.y, z: direction.z })
+  const rayHit = world.castRay(rapierRay, 100, true)
+
+  let collisionPoint: THREE.Vector3 | undefined
+  const hitRagdoll = rayHit ? ragdolls.find(d => d.ownsRigidBody(rayHit.collider.parent())) : null
+
+  if (hitRagdoll) {
+    activeRagdoll = hitRagdoll
+    const toi = rayHit!.timeOfImpact
+    collisionPoint = new THREE.Vector3(origin.x + direction.x * toi, origin.y + direction.y * toi, origin.z + direction.z * toi)
+    mouseHelperMesh.visible = true
+    axisHelper.visible = true
+    mouseHelperMesh.position.copy(collisionPoint)
+    axisHelper.position.copy(collisionPoint)
+    orbitControls.enableRotate = false
+  } else {
+    axisHelper.visible = false
+    mouseHelperMesh.visible = false
+    orbitControls.enableRotate = true
+  }
+
+  if (activeRagdoll && pulling) {
+    if (!pullingBody) {
+      pullingBody = activeRagdoll.findClosestBody(collisionPoint!)
+    }
+    pullingBody?.applyImpulse({ x: 0, y: 0.0205, z: 0 }, true)
+  }
+  
   stats.end()
 }
 

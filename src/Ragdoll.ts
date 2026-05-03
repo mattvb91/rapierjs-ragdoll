@@ -96,7 +96,7 @@ export class Ragdoll extends Object3D {
                 console.log((xhr.loaded / xhr.total * 100) + '% loaded');
             },
             function (error) {
-                console.log('An error happened');
+                console.log('An error happened:', error);
             }
         );
     }
@@ -240,6 +240,7 @@ export class Ragdoll extends Object3D {
 
         for (const key of orderedKeys) {
             const boneName = Ragdoll.boneMapping[key];
+
             const bone = this.mesh.getObjectByName(boneName);
             const body = this[key];
             if (!bone || !body) continue;
@@ -273,6 +274,34 @@ export class Ragdoll extends Object3D {
             bone.quaternion.copy(parentQuat.invert()).multiply(targetWorld);
             bone.updateMatrixWorld(true);
         }
+    }
+
+    public ownsRigidBody(body: RAPIER.RigidBody | null): boolean {
+        if (!body) return false;
+        for (const key of Object.keys(Ragdoll.boneMapping) as RagdollParts[]) {
+            if (this[key]?.handle === body.handle) return true;
+        }
+        return false;
+    }
+
+    public findClosestBody(point: Vector3): RAPIER.RigidBody | null {
+        if(!point) return null
+        
+        let closest: RAPIER.RigidBody | null = null;
+        let minDist = Infinity;
+
+        for (const part of Object.keys(Ragdoll.boneMapping) as RagdollParts[]) {
+            const body = this[part];
+            const pos = body.translation();
+            const dist = point.distanceTo(new Vector3(pos.x, pos.y, pos.z));
+
+            if (dist < minDist) {
+                minDist = dist;
+                closest = body;
+            }
+        }
+
+        return closest;
     }
 
 }
