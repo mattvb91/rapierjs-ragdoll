@@ -105,13 +105,14 @@ export class Ragdoll extends Object3D {
 
         // Adjust this to make it more flexible
         const stiffness = 0.03
+        const density = 0.16
 
         //Taken from blender bone lengths
         const torsoWidth = 0.4
-        const thighLength = .38
-        const shinLength = .43
-        const upperArmLength = .3
-        const lowerArmLength = .42
+        const thighLength = .38 - (stiffness * 2) // Remove the extra length added from the stiffness gap
+        const shinLength = .43 - (stiffness * 2)
+        const upperArmLength = .3 - (stiffness * 2)
+        const lowerArmLength = .42 - (stiffness * 2)
 
         const initialSpawn = new Vector3(0, 10, 0)
 
@@ -126,51 +127,51 @@ export class Ragdoll extends Object3D {
             .dynamic()
             .setTranslation(0, this.torso.translation().y + headSize / 2 + Ragdoll.torsoHeight / 2 + stiffness, 0)
         this.head = this.world.createRigidBody(headBodyDesc);
-        this.world.createCollider(headDesc, this.head);
+        this.world.createCollider(headDesc, this.head).setDensity(density)
 
         const armThickness = 0.15
 
         const armUpperRDesc = RAPIER.ColliderDesc.cuboid(upperArmLength / 2, armThickness / 2, armThickness / 2);
         const armUpperRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth + stiffness, this.torso.translation().y + 0.1, 0);
         this.armUpperRight = this.world.createRigidBody(armUpperRBodyDesc);
-        this.world.createCollider(armUpperRDesc, this.armUpperRight);
+        this.world.createCollider(armUpperRDesc, this.armUpperRight).setDensity(density)
 
         const armLowerRDesc = RAPIER.ColliderDesc.cuboid(lowerArmLength / 2, armThickness / 2, armThickness / 2);
         const armLowerRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth + lowerArmLength + stiffness * 2, this.torso.translation().y + 0.1, 0)
         this.armLowerRight = this.world.createRigidBody(armLowerRBodyDesc);
-        this.world.createCollider(armLowerRDesc, this.armLowerRight);
+        this.world.createCollider(armLowerRDesc, this.armLowerRight).setDensity(density)
 
         const armUpperLDesc = RAPIER.ColliderDesc.cuboid(upperArmLength / 2, armThickness / 2, armThickness / 2);
         const armUpperLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth - stiffness, this.torso.translation().y + 0.1, 0)
         this.armUpperLeft = this.world.createRigidBody(armUpperLBodyDesc);
-        this.world.createCollider(armUpperLDesc, this.armUpperLeft);
+        this.world.createCollider(armUpperLDesc, this.armUpperLeft).setDensity(density)
 
         const armLowerLDesc = RAPIER.ColliderDesc.cuboid(lowerArmLength / 2, armThickness / 2, armThickness / 2);
         const armLowerLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth - lowerArmLength - stiffness * 2, this.torso.translation().y + 0.1, 0)
         this.armLowerLeft = this.world.createRigidBody(armLowerLBodyDesc);
-        this.world.createCollider(armLowerLDesc, this.armLowerLeft);
+        this.world.createCollider(armLowerLDesc, this.armLowerLeft).setDensity(density)
 
         const legthickness = 0.18
 
         const legUpperRDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, thighLength /2, legthickness / 2)
         const legUpperRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(torsoWidth / 2 - 0.1, torsoBodyDesc.translation.y - Ragdoll.torsoHeight / 2 - thighLength / 2 - stiffness, 0)
         this.thighRight = this.world.createRigidBody(legUpperRBodyDesc)
-        this.world.createCollider(legUpperRDesc, this.thighRight);
+        this.world.createCollider(legUpperRDesc, this.thighRight).setDensity(density)
 
         const legLowerRDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, shinLength / 2, legthickness / 2)
         const legLowerRBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(legUpperRBodyDesc.translation.x, legUpperRBodyDesc.translation.y - shinLength - stiffness, 0)
         this.shinRight = this.world.createRigidBody(legLowerRBodyDesc)
-        this.world.createCollider(legLowerRDesc, this.shinRight);
+        this.world.createCollider(legLowerRDesc, this.shinRight).setDensity(density)
 
         const legUpperLDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, thighLength / 2, legthickness / 2)
         const legUpperLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(-torsoWidth / 2 + 0.1, torsoBodyDesc.translation.y - Ragdoll.torsoHeight / 2 - thighLength / 2 - stiffness, 0)
         this.thighLeft = this.world.createRigidBody(legUpperLBodyDesc)
-        this.world.createCollider(legUpperLDesc, this.thighLeft);
+        this.world.createCollider(legUpperLDesc, this.thighLeft).setDensity(density)
 
         const legLowerLDesc = RAPIER.ColliderDesc.cuboid(legthickness / 2, shinLength / 2, legthickness / 2)
         const legLowerLBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(legUpperLBodyDesc.translation.x, legUpperRBodyDesc.translation.y - shinLength - stiffness, 0)
         this.shinLeft = this.world.createRigidBody(legLowerLBodyDesc)
-        this.world.createCollider(legLowerLDesc, this.shinLeft);
+        this.world.createCollider(legLowerLDesc, this.shinLeft).setDensity(density)
 
         const localAnchorHead = { x: 0, y: -headSize / 2 - stiffness, z: 0 };
         const localAnchorNeck = { x: 0, y: Ragdoll.torsoHeight / 2, z: 0 };
@@ -196,8 +197,8 @@ export class Ragdoll extends Object3D {
         const localAnchorRLegUpperLower = { x: 0, y: -shinLength / 2 - stiffness, z: 0 };
         const localAnchorRLegLowerTop = { x: 0, y: shinLength / 2, z: 0 };
 
-        const localAnchorLLegUpperLower = { x: 0, y: -thighLength / 2 - stiffness, z: 0 };
-        const localAnchorLLegLowerTop = { x: 0, y: thighLength / 2, z: 0 };
+        const localAnchorLLegUpperLower = { x: 0, y: -shinLength / 2 - stiffness, z: 0 };
+        const localAnchorLLegLowerTop = { x: 0, y: shinLength / 2, z: 0 };
 
         const createJoint = (anchor1: RAPIER.Vector, anchor2: RAPIER.Vector, parent1: RAPIER.RigidBody, parent2: RAPIER.RigidBody) => {
             const joint = RAPIER.JointData.spherical(anchor1, anchor2);
